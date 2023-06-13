@@ -1,0 +1,6 @@
+report_test:
+    handler: reports-service/handler.test
+    events:
+        - httpApi:
+              path: /sec/report/test
+              method: GET

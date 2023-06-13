@@ -1,0 +1,146 @@
+service: shareecare
+
+frameworkVersion: "3"
+
+useDotenv: true
+
+params:
+    prod:
+        url: "https://app.shareecare.com"
+        domain: reports.api.shareecare.com
+        wsDomain: ws.shareecare.com
+    dev:
+        url: "https://dev.shareecare.com"
+        domain: dev.reports.api.shareecare.com
+        wsDomain: dev.ws.shareecare.com
+    stage:
+        url: "https://stage.shareecare.com"
+        domain: stage.reports.api.shareecare.com
+        wsDomain: state.ws.shareecare.com
+    local:
+        url: "https://dev.shareecare.com"
+        domain: dev.reports.api.shareecare.com
+        wsDomain: dev.ws.shareecare.com
+
+custom:
+    serverless-offline:
+        host: "0.0.0.0"
+    stage: ${opt:stage, self:provider.stage}
+    defaultDomain: shareecare.com
+    customDomain:
+        http:
+            domainName: ${param:domain}
+            basePath: ""
+            certificateName: ${self:custom.defaultDomain}
+            endpointType: REGIONAL
+            securityPolicy: tls_1_2
+            apiType: http
+        websocket:
+            domainName: ${param:wsDomain}
+            stage: ${self:custom.stage}
+            certificateName: ${self:custom.defaultDomain}
+            endpointType: REGIONAL
+            securityPolicy: tls_1_2
+            apiType: websocket
+    prune:
+        automatic: true
+        number: 3
+    webpack:
+        webpackConfig: "webpack.config.js" # name of webpack configuration file
+        includeModules: true # add excluded modules to the bundle
+        packager: "yarn" # package manager we use
+        excludeFiles: __tests__/*
+        packagerOptions:
+            noFrozenLockfile: true
+        watch: true
+
+provider:
+    name: aws
+    runtime: nodejs16.x
+    region: us-west-2
+    memorySize: 10024
+    timeout: 900
+
+    environment:
+        APP_NODE_ENV: ${self:custom.stage}
+        REGION: us-west-2
+        DB_HOST: ${env:DB_HOST}
+        DB_USER: ${env:DB_USER}
+        DB_PASSWORD: ${env:DB_PASSWORD}
+        DB_DATABASE: ${env:DB_DATABASE}
+        #CONNECTION_LIMIT: ${env:CONNECTION_LIMIT}
+        #QUEUE_LIMIT: ${env:QUEUE_LIMIT}
+        #JWT_SECRET: ${env:JWT_SECRET}
+        #END_IN_BLUE_API_KEY: ${env:SEND_IN_BLUE_API_KEY}
+        #CRYPTO_PASSWORD: ${env:CRYPTO_PASSWORD}
+    stage: ${opt:stage, "local"}
+    apiGateway:
+        shouldStartNameWithService: true
+    httpApi:
+        cors:
+            allowedOrigins:
+                - ${param:url}
+                - "http://localhost:5000"
+            allowedHeaders:
+                - Content-Type
+                - X-Amz-Date
+                - Authorization
+                - X-Api-Key
+                - X-Amz-Security-Token
+                - X-Amz-User-Agent
+                - X-auth-token
+                - Cookie
+            allowedMethods:
+                - GET
+                - POST
+                - PUT
+                - DELETE
+            allowCredentials: true
+
+    iam:
+        role:
+            statements:
+                - Effect: Allow
+                  Action:
+                      - lambda:InvokeFunction
+                      - lambda:InvokeAsync
+                  Resource: "*"
+                - Effect: Allow
+                  Action:
+                      - secretsmanager:*
+                  Resource: "*"
+                - Effect: Allow
+                  Action:
+                      - execute-api:*
+                  Resource: "arn:aws:execute-api:*:*:*/@connections/*"
+                - Effect: Allow
+                  Action:
+                      - "s3:ListBucket"
+                      - "s3:GetObject"
+                      - "s3:PutObject"
+                  Resource: "*"
+                - Effect: Allow
+                  Action:
+                      - iam:*
+                  Resource: "arn:aws:iam::*:role/aws-service-role/email.cognito-idp.amazonaws.com/AWSServiceRoleForAmazonCognitoIdpEmail*"
+
+package:
+    individually: true
+    patterns:
+        - "!src/**"
+        - "!README.md"
+        - "!__tests__/**"
+        - "!.serverless/**"
+        - ".webpack/**"
+        - "!yarn.lock"
+        - "!node_modules/**"
+
+functions:
+    - ${file(./auth-service/serverless.yml)}
+    - ${file(./reports-service/serverless.yml)}
+
+plugins:
+    - serverless-offline
+    - serverless-prune-plugin
+    - serverless-webpack
+    - serverless-domain-manager

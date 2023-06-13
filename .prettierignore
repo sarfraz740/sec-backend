@@ -1,0 +1,9 @@
+.build
+.serverless
+.serverless-offline
+.webpack
+**/coverage/**
+env.*.json
+.lintstagedrc
+**/layer/**
+test.json

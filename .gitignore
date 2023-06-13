@@ -1,0 +1,17 @@
+# package directories
+node_modules
+yarn-error.log
+yarn.lock
+package-lock.json
+coverage
+*.pem
+**.DS_Store
+**/__pycache__/
+
+# Serverless directories
+.serverless
+.webpack
+
+.env*
+*.csv
+*.xlsx

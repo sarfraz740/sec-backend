@@ -1,0 +1,9 @@
+auth_test:
+    handler: auth-service/handler.test
+    environment:
+        LD_LIBRARY_PATH: /var/task/node_modules/canvas/build/Release
+        LD_PRELOAD: /var/task/node_modules/canvas/build/Release/libz.so.1
+    events:
+        - httpApi:
+              path: /sec/auth/test
+              method: GET
